@@ -18,7 +18,7 @@ WD : Women's Doubles
 
 """
 
-comps = "MS WS MD"
+comps = "MS MD"
 
 #driver = webdriver.PhantomJS()
 
@@ -119,11 +119,19 @@ for competition_type in comps.split():
 	
 			if competition_type in ["MD", "WD"]:
 				flag = "doubles"
+				double_name1 = t.find_elements_by_css_selector(".name." + flag)[0].find_elements_by_xpath("a")[0].text
+				double_name2 = t.find_elements_by_css_selector(".name." + flag)[0].find_elements_by_xpath("a")[1].text
+				list_player1.append(double_name1 + "/" + double_name2)
+				double_name1 = t.find_elements_by_css_selector(".name." + flag)[1].find_elements_by_xpath("a")[0].text
+				double_name2 = t.find_elements_by_css_selector(".name." + flag)[1].find_elements_by_xpath("a")[1].text
+				list_player2.append(double_name1 + "/" + double_name2)
+				#print("currently, list_player1=",list_player1)
+				#list_player2.append(t.find_elements_by_css_selector(".name." + flag)[1]..text)
 			else:
 				flag = "singles"
-			list_player1.append(t.find_elements_by_css_selector(".name." + flag)[0].find_element_by_xpath("a").text)
-			#print("currently, list_player1=",list_player1)
-			list_player2.append(t.find_elements_by_css_selector(".name." + flag)[1].find_element_by_xpath("a").text)
+				list_player1.append(t.find_elements_by_css_selector(".name." + flag)[0].find_element_by_xpath("a").text)
+				#print("currently, list_player1=",list_player1)
+				list_player2.append(t.find_elements_by_css_selector(".name." + flag)[1].find_element_by_xpath("a").text)
 	
 		print("ok")
 		
