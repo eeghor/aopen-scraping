@@ -64,13 +64,11 @@ a = as_in_playday_list[0]
 
 a.click()
 time.sleep(3)  # go to page 1
+print("""-------> scraping aopen.com""")
 
 for i in range(total_days): 
 
-	if i > 0 and i < (total_days - 1):
-		driver.find_element_by_xpath("//div[@id='tournDays']/ul").find_elements_by_xpath("li/a[@href]")[i].click()
-
-	print("scraping day", i, "...", end="")
+	print("scraping day", i+1, "...", end="")
 
 	time.sleep(3)
 
@@ -82,30 +80,38 @@ for i in range(total_days):
 
 		list_courts.append(t.find_element_by_xpath("div/div[@class='courtname']").text)
 
-		player1_set1 = t.find_elements_by_css_selector("span.set1")[0].text
-		player2_set1 = t.find_elements_by_css_selector("span.set1")[1].text
-		player1_set2 = t.find_elements_by_css_selector("span.set2")[0].text
-		player2_set2 = t.find_elements_by_css_selector("span.set2")[1].text
-		player1_set3 = t.find_elements_by_css_selector("span.set3")[0].text
-		player2_set3 = t.find_elements_by_css_selector("span.set3")[1].text
-		player1_set4 = t.find_elements_by_css_selector("span.set4")[0].text
-		player2_set4 = t.find_elements_by_css_selector("span.set4")[1].text
-		player1_set5 = t.find_elements_by_css_selector("span.set5")[0].text
-		player2_set5 = t.find_elements_by_css_selector("span.set5")[1].text
+		list_player1_set1.append(t.find_elements_by_css_selector("span.set1")[0].text)
+		list_player2_set1.append(t.find_elements_by_css_selector("span.set1")[1].text)
+		list_player1_set2.append(t.find_elements_by_css_selector("span.set2")[0].text)
+		list_player2_set2.append(t.find_elements_by_css_selector("span.set2")[1].text)
+		list_player1_set3.append(t.find_elements_by_css_selector("span.set3")[0].text)
+		list_player2_set3.append(t.find_elements_by_css_selector("span.set3")[1].text)
+		list_player1_set4.append(t.find_elements_by_css_selector("span.set4")[0].text)
+		list_player2_set4.append(t.find_elements_by_css_selector("span.set4")[1].text)
+		list_player1_set5.append(t.find_elements_by_css_selector("span.set5")[0].text)
+		list_player2_set5.append(t.find_elements_by_css_selector("span.set5")[1].text)
 
 			
 		list_player1.append(t.find_elements_by_css_selector(".name.singles")[0].find_element_by_xpath("a").text)
+		#print("currently, list_player1=",list_player1)
 		list_player2.append(t.find_elements_by_css_selector(".name.singles")[1].find_element_by_xpath("a").text)
 
 	print("ok")
+	
+	if i < total_days - 1:
+		driver.find_element_by_xpath("//div[@id='tournDays']/ul").find_elements_by_xpath("li/a[@href]")[i+1].click()
 
 	# combine matches in one list of tuples, something like matches of the day
 	
-data = zip(list_dates, list_courts, list_player1, player1_set1, player1_set2, player1_set3, player1_set4, player1_set5,
-				 list_player2, player2_set1, player2_set2, player2_set3, player2_set4, player2_set5)
-for z in data:
-	print(z)
-print("created a zip...")
-	
-
 driver.quit()
+
+data = zip(list_dates, list_courts, list_player1, list_player1_set1, list_player1_set2, list_player1_set3, list_player1_set4, list_player1_set5,
+				 list_player2, list_player2_set1, list_player2_set2, list_player2_set3, list_player2_set4, list_player2_set5)
+
+df = pd.DataFrame(columns="date court player1 p1s1 p1s2 p1s3 p1s4 p1s5 player2 p2s1 p2s2 p2s3 p2s4 p2s5".split())
+
+for i, row in enumerate(data):
+	df.loc[i] = row
+	
+print(df.head(10))
+
