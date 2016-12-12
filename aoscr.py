@@ -1,4 +1,10 @@
 # -*- coding: utf-8 -*-
+"""
+Scrape the official Australian Open web site
+Note:
+* court information is only available for years starting from 2005
+"""
+
 import selenium
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
@@ -8,6 +14,15 @@ from selenium.webdriver.common.by import By
 import time
 import re
 import pandas as pd
+from collections import namedtuple
+
+import requests
+from bs4 import BeautifulSoup
+
+from collections import defaultdict
+from datetime import datetime  # need to convert timezone
+from pytz import timezone  # note that the AO timezone is called Australia/Melbourne
+
 
 """
 what do you want to scrape? 
@@ -17,6 +32,8 @@ MD : Men's Doubles
 WD : Women's Doubles
 
 """
+
+year = 2016
 
 comps = "MS MD"
 
@@ -45,6 +62,25 @@ list_player2_set4 = []
 list_player2_set5 = []
 
 list_courts = []
+
+
+
+ao_tz = timezone("Australia/Melbourne")
+de_tz = timezone("Europe/Berlin")
+
+wettpoint_headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36"}
+
+list_tmp_player1 = []
+list_tmp_player2 = []
+list_tmp_dtime= []
+list_tmp_scores = []
+
+# comp_types = "MS WS"
+
+# comp_types_dict = {"MS" : "Men's Singles", "WS" : "Women's Singles"}
+# dictionary used to create the right URL
+add_to_link_dict = {"MS": "men", "WS": "women"}
+
 
 driver = webdriver.Chrome('/Users/ik/Codes/aopen-scraping/chromedriver')
 
@@ -75,13 +111,14 @@ for competition_type in comps.split():
 	
 	as_in_playday_list = playday_list.find_elements_by_xpath("li/a[@href]")
 	total_days = len(as_in_playday_list)
+
+	# the below are like Monday, 18 January; format: %A, %d %B
 	match_dates = [a.get_attribute("title").strip() for a in as_in_playday_list]
 	
 	a = as_in_playday_list[0]
 	
 	a.click()
 	time.sleep(3)  # go to page 1
-	
 	
 	
 	for i in range(total_days): 
@@ -138,22 +175,78 @@ for competition_type in comps.split():
 		if i < total_days - 1:
 			driver.find_element_by_xpath("//div[@id='tournDays']/ul").find_elements_by_xpath("li/a[@href]")[i+1].click()
 
-	# combine matches in one list of tuples, something like matches of the day
+	# by now we have scraped the results for this particula competition. what about times? we are going to go to tennis.wettpoint.com
+	# and get the same competition
+
+	print("""-------> scraping tennis.wettpoint.com""")
+
+	wettpoint_archiv_part = "http://tennis.wettpoint.com/en/archiv/"
+
+	if competition_type == "MD":
+		season_line = wettpoint_archiv_part + "australian-open-doubles-" + str(year)
+	elif competition_type == "WD":
+		season_line = wettpoint_archiv_part + "australianopen-women-doubles-" + str(year)
+	elif competition_type == "WS":
+		season_line = wettpoint_archiv_part + "australian-open-women-" + str(year)
+	elif competition_type == "MS":
+		season_line = wettpoint_archiv_part + "australian-open-men-" + str(year)
+
+	season_line += ".html"
+
+	page = requests.get(season_line, headers=wettpoint_headers)
+
+	if page.status_code == 200:
+		print("ok")
+	else:
+		print("error! status code {}".format(page.status_code))
+
+	soup = BeautifulSoup(page.content, 'html.parser')
+
+	rws = soup.find_all("tr")
+
+	TennisMatch = namedtuple("TennisMatch", "date time players")
+
+	for row in rws:
+
+		# check if it's a typical match record, i.e. has 3 cells
+
+		if len(row.find_all("td")) == 3:
+
+			c1, c2, c3 = row.find_all("td")
+
+			# localized data and time below look like 2015-01-23 13:00:00+11:00
+
+			dtime_parsed_berlin = de_tz.localize(datetime.strptime(c1.text, "%d/%m/%y %H:%M"))
+			dtime_parsed_melbourne = dtime_parsed_berlin.astimezone(ao_tz)
+			
+			p1_surname, p2_surname = map(lambda x: x.split(".")[-1].strip(), c2.text.split(" - "))  # note 2 white spaces
+
+			list_tmp_player1.append(p1_surname)
+			list_tmp_player2.append(p2_surname)
+
+			list_tmp_dtime.append(dtime_parsed_melbourne.strftime("%Y-%m-%d %H:%M"))
+			list_tmp_scores.append(c3.text.strip())
 	
-driver.quit()
-
-data = zip(list_round, list_dates, list_courts, list_player1, list_player1_set1, list_player1_set2, list_player1_set3, list_player1_set4, list_player1_set5,
-				 list_player2, list_player2_set1, list_player2_set2, list_player2_set3, list_player2_set4, list_player2_set5)
-
-df = pd.DataFrame(columns="round date court player1 p1s1 p1s2 p1s3 p1s4 p1s5 player2 p2s1 p2s2 p2s3 p2s4 p2s5".split())
-
-for i, row in enumerate(data):
-	df.loc[i] = row
+	# matching
+	for i, p1 in enumerate(list_player1):
+		if 
+		[(p1.split(".")[1], p2.split(".")[1])]
+	print(list_tmp_player1)
 	
-csv_fl = "scraped_data_from_aopen_" + "_".join(comps.split()) + ".csv"
+# driver.quit()
+
+# data = zip(list_round, list_dates, list_courts, list_player1, list_player1_set1, list_player1_set2, list_player1_set3, list_player1_set4, list_player1_set5,
+# 				 list_player2, list_player2_set1, list_player2_set2, list_player2_set3, list_player2_set4, list_player2_set5)
+
+# df = pd.DataFrame(columns="round date court player1 p1s1 p1s2 p1s3 p1s4 p1s5 player2 p2s1 p2s2 p2s3 p2s4 p2s5".split())
+
+# for i, row in enumerate(data):
+# 	df.loc[i] = row
+	
+# csv_fl = "scraped_data_from_aopen_" + "_".join(comps.split()) + ".csv"
 
 
-df.to_csv(csv_fl, index=False)
+# df.to_csv(csv_fl, index=False)
 
-print("successfully retrieved {} results..".format(len(df.index)))
+# print("successfully retrieved {} results..".format(len(df.index)))
 
