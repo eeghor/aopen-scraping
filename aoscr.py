@@ -44,6 +44,7 @@ abbr_dict = {"MS" : "Men's Singles",
 					"MD" : "Men's Doubles", 
 						"WD" : "Women's Doubles"}
 list_dates = []
+list_times = []
 list_round = []
 
 list_player1 = []
@@ -63,6 +64,7 @@ list_player2_set5 = []
 
 list_courts = []
 
+mtch_list = []
 
 
 ao_tz = timezone("Australia/Melbourne")
@@ -193,6 +195,7 @@ for competition_type in comps.split():
 
 	season_line += ".html"
 
+	print("requesting the results page..", end="")
 	page = requests.get(season_line, headers=wettpoint_headers)
 
 	if page.status_code == 200:
@@ -204,6 +207,7 @@ for competition_type in comps.split():
 
 	rws = soup.find_all("tr")
 
+	# we will keep match information in a list of named tuples; we don't really need the scores as such
 	TennisMatch = namedtuple("TennisMatch", "date time players")
 
 	for row in rws:
@@ -221,32 +225,35 @@ for competition_type in comps.split():
 			
 			p1_surname, p2_surname = map(lambda x: x.split(".")[-1].strip(), c2.text.split(" - "))  # note 2 white spaces
 
-			list_tmp_player1.append(p1_surname)
-			list_tmp_player2.append(p2_surname)
+			# list_tmp_player1.append(p1_surname)
+			# list_tmp_player2.append(p2_surname)
 
-			list_tmp_dtime.append(dtime_parsed_melbourne.strftime("%Y-%m-%d %H:%M"))
-			list_tmp_scores.append(c3.text.strip())
+			# list_tmp_dtime.append(dtime_parsed_melbourne.strftime("%Y-%m-%d %H:%M"))
+			# list_tmp_scores.append(c3.text.strip())
+
+			mtch_list.append(TennisMatch(dtime_parsed_melbourne.strftime("%Y-%m-%d"), dtime_parsed_melbourne.strftime("%H:%M"), {p1_surname, p2_surname} ))
 	
 	# matching
 	for i, p1 in enumerate(list_player1):
-		if 
-		[(p1.split(".")[1], p2.split(".")[1])]
-	print(list_tmp_player1)
+		player_surnames = set(list_player1[i].split(".")[1].strip(),list_player2[i].split(".")[1].strip())
+		for match_w_time in mtch_list:
+			if len(player_surnames.intersection(match_w_time.players)) == 2:  # complete match
+				list_times.append(match_w_time.time)
 	
-# driver.quit()
+driver.quit()
 
-# data = zip(list_round, list_dates, list_courts, list_player1, list_player1_set1, list_player1_set2, list_player1_set3, list_player1_set4, list_player1_set5,
-# 				 list_player2, list_player2_set1, list_player2_set2, list_player2_set3, list_player2_set4, list_player2_set5)
+data = zip(list_round, list_dates, list_times, list_courts, list_player1, list_player1_set1, list_player1_set2, list_player1_set3, list_player1_set4, list_player1_set5,
+				 list_player2, list_player2_set1, list_player2_set2, list_player2_set3, list_player2_set4, list_player2_set5)
 
-# df = pd.DataFrame(columns="round date court player1 p1s1 p1s2 p1s3 p1s4 p1s5 player2 p2s1 p2s2 p2s3 p2s4 p2s5".split())
+df = pd.DataFrame(columns="round date time court player1 p1s1 p1s2 p1s3 p1s4 p1s5 player2 p2s1 p2s2 p2s3 p2s4 p2s5".split())
 
-# for i, row in enumerate(data):
-# 	df.loc[i] = row
+for i, row in enumerate(data):
+	df.loc[i] = row
 	
-# csv_fl = "scraped_data_from_aopen_" + "_".join(comps.split()) + ".csv"
+csv_fl = "scraped_data_from_aopen_" + "_".join(comps.split()) + ".csv"
 
 
-# df.to_csv(csv_fl, index=False)
+df.to_csv(csv_fl, index=False)
 
-# print("successfully retrieved {} results..".format(len(df.index)))
+print("successfully retrieved {} results..".format(len(df.index)))
 
