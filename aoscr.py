@@ -316,7 +316,7 @@ for i, row in enumerate(data):
 csv_fl = "scraped_data_from_aopen_" + "_".join(comps.split()) + ".csv"
 
 
-df.to_csv(csv_fl, index=False)
+df.to_csv(csv_fl, index=False, sep="\t")
 
 print("successfully retrieved {} results..".format(len(df.index)))
 
