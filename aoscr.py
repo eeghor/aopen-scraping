@@ -44,7 +44,7 @@ y_to = 2016
 
 year = 2014
 
-comps = "MS"
+comps = "WD MD MS WS"
 
 abbr_dict = {"MS" : "Men's Singles", 
 				"WS" : "Women's Singles", 
@@ -174,7 +174,14 @@ elif year > 2004 and year < 2016:
 
 	for competition_type in comps.split():
 
-		main_link = "http://www.ausopen.com/en_AU/event_guide/history/draws/" + str(year) + "_" + competition_type + "_"
+		print("extracting the {} tournament ...".format(abbr_dict[competition_type]))
+
+		if competition_type == "WD":
+			competition_typeQ = "LD"
+		else:
+			competition_typeQ = competition_type
+
+		main_link = "http://www.ausopen.com/en_AU/event_guide/history/draws/" + str(year) + "_" + competition_typeQ + "_"
 
 		if competition_type in "MS WS".split():
 
@@ -257,32 +264,82 @@ elif year > 2004 and year < 2016:
 				
 				print("ok")
 
-			elif competition_type in "MD WD".split():
+		elif competition_type in "MD WD".split():
 
-				# this is for all years but 2016; {"round 1": ["link1", "link2", ..], "round 2": [..]}
-				links_by_round = defaultdict(list)
-				# another dict to relate round number to what is actually is
-				round_numbers_to_names = {1: "Round 1", 2: "Round 2", 3: "Round 3", 4: "Quarterfinals", 5: "Semifinals", 6: "Final"}
+			
+			# this is for all years but 2016; {"round 1": ["link1", "link2", ..], "round 2": [..]}
+			links_by_round = defaultdict(list)
+			# another dict to relate round number to what is actually is
+			round_numbers_to_names = {1: "Round 1", 2: "Round 2", 3: "Round 3", 4: "Quarterfinals", 5: "Semifinals", 6: "Final"}
+			
+			for rnd in range(1,7):
 
-				for rnd in range(1,7):
-	
 				if rnd == 1:
 					links_by_round[rnd].append(main_link + str(rnd) + ".html")
 					links_by_round[rnd].append(main_link + str(rnd) + "_2.html")
 				
-				if rnd == [2,3]:
+				if rnd in [2,3]:
 					links_by_round[rnd].append(main_link + str(rnd) + ".html")
 	
 				if rnd == 4:
 					links_by_round[rnd].append(main_link +  "Q" + ".html")
 	
-				if rnd == 6:
+				if rnd == 5:
 					links_by_round[rnd].append(main_link +  "S" + ".html")
 	
-				if rnd == 7:
+				if rnd == 6:
 					links_by_round[rnd].append(main_link +  "F" + ".html")
-	
+
 				# done with the links
+				print("scraping round", rnd, "...", end="")
+	
+				for r in links_by_round[rnd]:  
+
+					driver.get(r)
+	
+					time.sleep(10)
+					
+					score_tables = driver.find_elements_by_xpath("//div[@class='scoringtable' and @data-event='" + competition_type +"']")  # list of tables
+				
+					for t in score_tables:
+						
+						# for each match attach round, we know what it is
+						list_round.append(round_numbers_to_names[rnd])
+						list_dates.append(str(year))  # no dates available, only the year!
+	
+						try:
+							court_comp = t.find_element_by_xpath("div/div[@class='courtname']")
+						except NoSuchElementException:
+							print("error! interestingly, couldn't find the court name for this match..")
+	
+						if "-" in court_comp.text:
+							court, compet_type = court_comp.text.split("-")
+						else:
+							court = compet_type = "N/A"
+	
+						list_courts.append(court.strip())
+				
+						list_player1_set1.append(t.find_elements_by_css_selector("span.set1")[0].text)
+						list_player2_set1.append(t.find_elements_by_css_selector("span.set1")[1].text)
+						list_player1_set2.append(t.find_elements_by_css_selector("span.set2")[0].text)
+						list_player2_set2.append(t.find_elements_by_css_selector("span.set2")[1].text)
+						list_player1_set3.append(t.find_elements_by_css_selector("span.set3")[0].text)
+						list_player2_set3.append(t.find_elements_by_css_selector("span.set3")[1].text)
+						list_player1_set4.append(t.find_elements_by_css_selector("span.set4")[0].text)
+						list_player2_set4.append(t.find_elements_by_css_selector("span.set4")[1].text)
+						list_player1_set5.append(t.find_elements_by_css_selector("span.set5")[0].text)
+						list_player2_set5.append(t.find_elements_by_css_selector("span.set5")[1].text)
+				
+						pair1 = t.find_elements_by_css_selector(".name")[0].find_elements_by_xpath(".//a[contains(@href, 'players')]")
+						pair1_p1 = pair1[0].text.strip()
+						pair1_p2 = pair1[1].text.strip()
+						list_player1.append(pair1_p1 + "/" + pair1_p2)
+						pair2 = t.find_elements_by_css_selector(".name")[1].find_elements_by_xpath(".//a[contains(@href, 'players')]")
+						pair2_p1 = pair2[0].text.strip()
+						pair2_p2 = pair2[1].text.strip()
+						list_player2.append(pair2_p1 + "/" + pair2_p2)
+				
+				print("ok")
 	
 		# 	navigation_bar = WebDriverWait(driver, WAIT_TIME).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#nav")))
 		# draws_in_navigation_bar = navigation_bar.find_element_by_xpath(".//ul/li/a[contains(@href, 'draws')]")
